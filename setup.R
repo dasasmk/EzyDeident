@@ -110,15 +110,5 @@ if(!any(packs%in%"downloader")){
   install.packages("downloader")  
 }
 
-this.file <- sys.frame(tail(grep('source',sys.calls()),n=1))$ofile
-this.dir <- dirname(this.file)
-
-library(downloader)
-
-download("https://github.com/jgm/pandoc/releases/download/1.15.2/pandoc-1.15.2-windows.msi", dest=paste0(this.dir,"/pandoc.msi"), mode="wb") 
-system2(paste0(this.dir,"/pandoc.msi"))
-
-download("http://mirrors.ctan.org/systems/win32/miktex/setup/basic-miktex-2.9.5823.exe", dest=paste0(this.dir,"/miktex.exe"), mode="wb") 
-system2(paste0(this.dir,"/miktex.exe"))
 
 
