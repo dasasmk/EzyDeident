@@ -40,12 +40,13 @@ shinyUI(navbarPage("Ezy De-Identifier",
                                                   c(Comma=',',
                                                   Semicolon=';',
                                                   Tab='\t'),
-                                                  ','),
-                  radioButtons('quote', 'Quote',
-                                                  c(None='',
-                                                  'Double Quote'='"',
-                                                  'Single Quote'="'"),
-                                                  '"')),column(9,
+                                                  ',')
+#                   radioButtons('quote', 'Quote',
+#                                                   c(None='',
+#                                                   'Double Quote'='"',
+#                                                   'Single Quote'="'"),
+#                                                   '"')),
+                  ),column(9,
                   tableOutput('preview_step1'),
                   textOutput("preview_step1_name")))),
                   
@@ -110,7 +111,7 @@ tabPanel("Verify",
 tabPanel("About",
          
          
-         fluidRow(column(12,offset=1,"Ezy De-identifer v1.0 - Copyright 2015")),
+         fluidRow(column(12,offset=1,"Ezy De-identifer v1.1 - Copyright 2016")),
          fluidRow(column(12,offset=1,"Co-developed by the Centre for Health Services and Policy Research and the Saw Swee Hock School of Public Health")),
          fluidRow(column(12,offset=1,"at the National University of Singapore and National University Health System in Singapore"))
          

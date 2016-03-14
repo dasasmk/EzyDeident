@@ -1,3 +1,37 @@
+#' Reading in file, preventing R from modifying its column names
+#' @details When a column name in an input file contains space, R will join the 
+#'   separate words with \code{.}. This function prevents R from doing this to 
+#'   the column names.
+#' @param file Path to the input file.
+#' @param header Whether the input file has headers.
+#' @param ... Other parameter that is accepted by built-in R function
+#'   \code{read.csv}.
+#' @return Returns a \code{data.frame} of the input data, with column names 
+#'   exactly the same as in the original input file. 
+readFileReserveHeader <- function(file, header = TRUE, ...) {
+  if (header) {
+    datain <- fread(input = file, header = FALSE, ...)
+    datain <- data.frame(datain)
+    cnames <- as.vector(sapply(datain[1, ], as.character))
+    datain <- datain[-1, ]
+    names(datain) <- cnames
+    datain
+  } else {
+    fread(input = file, header = FALSE, ...)
+  }
+}
+#' Writing data to a csv file, preventing R from modifying its column names
+#' @details When a column name in a \code{data.frame} contains space, R will
+#'   join the separate words with \code{.}. This function prevents R from doing
+#'   this to the column names.
+#' @param data The \code{data.frame} to write. Must have column names.
+#' @param file Path to the input file.
+writeFileReserveHeader <- function(data, file) {
+  cnames <- names(data)
+  data <- rbind(cnames, as.matrix(data))
+  write.table(data, file = file, sep = ",", row.names = FALSE, 
+              col.names = FALSE)
+}
 #' Adding YAML parameters to the beginning of an \code{.Rmd} file
 #' @param title The title of the resulting document. Default is without title.
 #' @param date Date to show in the resulting document. Default is without date.
@@ -7,12 +41,11 @@
 #'  \code{html_document} (for \code{html} file). 
 #'  Default is \code{pdf_document}.
 #' @param fontsize The font size to use for the output \code{pdf} document only. 
-#'  Default is 12pt (larger than system default, which is 11pt).
 #' @param ... Parameters for function \code{\link{[base]cat}}. 
 #' @details By supplying the name of the .Rmd file, this function can write the 
 #'  YAML parameters to the file.
 addYAML <- function(title = "", date = "", output = "pdf_document", 
-                    fontsize = "12pt", ...) {
+                    fontsize = "11pt", ...) {
   cat("---\n", ...)
   if (title != "") cat("title:", title, "\n", ...)
   if (date != "") cat("date:", date, "\n", ...)
@@ -56,6 +89,8 @@ addParams <- function(params, ...) {
   paste0("params <- list(", paste(value, collapse = ", "), ")")
 }
 #' Checking whether the masked columns specified are legal
+#' *************Modified***************
+#' The original way of checking whether a mapping table exists was wrong.
 checkInput <- function(mappingDir, maskedCols) {
   if (mappingDir == "") {
     stop(simpleError("Please check the masked columns."))
@@ -63,12 +98,9 @@ checkInput <- function(mappingDir, maskedCols) {
   # Need to check whether the masked columns are correctly specified, i.e. 
   # whether a mapping table exists for each of the columns given
   mappingTbs <- dir(mappingDir, pattern = "mapping-")
-  mappingCols <- sapply(mappingTbs, 
-                        function(mt) {
-                          f <- unlist(strsplit(mt, split = "mapping-"))[2]
-                          unlist(strsplit(f, split = "\\."))[1]
-                        })
-  mapExists <- sapply(maskedCols, function(col) col %in% mappingCols)
+  mapExists <- sapply(maskedCols, 
+                      function(col) paste0("mapping-", col, ".csv") %in% 
+                        mappingTbs)
   if (any(!mapExists)) {
     nm <- maskedCols[!mapExists]
     stop(simpleError(paste("Are you sure columns", toString(nm), 

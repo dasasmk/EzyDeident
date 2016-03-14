@@ -110,5 +110,9 @@ if(!any(packs%in%"downloader")){
   install.packages("downloader", repos="http://cran.us.r-project.org")   
 }
 
+if(!any(packs%in%"data.table")){
+  install.packages("data.table", repos="http://cran.us.r-project.org")   
+}
+
 
 

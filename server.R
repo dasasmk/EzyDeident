@@ -4,12 +4,13 @@ options(shiny.trace=FALSE)
 library(shiny)
 library(digest)
 library(plyr)
+library(data.table)
 source('masking_code.R')
 source('functions.R')
 
 # By default, the file size limit is 5MB. It can be changed by
-# setting this option. Here we'll raise limit to 120MB.
-options(shiny.maxRequestSize = 120*1024^2)
+# setting this option. Here we'll raise limit to 500MB.
+options(shiny.maxRequestSize = 500*1024^2)
 pathvar <<- getwd();
 tempdirpath <<- NULL;
 
@@ -111,8 +112,11 @@ shinyServer(function(input, output, session) {
     if (is.null(inFile))
       return('')
     
-    datain <<- read.csv(inFile$datapath, header = input$header,
-                        sep = input$sep, quote = input$quote, nrows = 2)
+    # datain <<- read.csv(inFile$datapath, header = input$header,
+    #                     sep = input$sep, quote = input$quote, nrows = 2)
+    datain <<- readFileReserveHeader(file = inFile$datapath, 
+                                     header = input$header, sep = input$sep, 
+                                     nrows = 2)
     
     selectInput(inputId = "nricselect", label = "NRIC Column", choices = as.list(colnames(datain)))
   })
@@ -146,8 +150,11 @@ shinyServer(function(input, output, session) {
     
     updateCheckboxInput(session, "step1next", value = TRUE)
     
-    datain <<- read.csv(inFile$datapath, header = input$header,
-                       sep = input$sep, quote = input$quote, nrows=5)
+    # datain <<- read.csv(inFile$datapath, header = input$header,
+    #                    sep = input$sep, quote = input$quote, nrows=5)
+    datain <<- readFileReserveHeader(file = inFile$datapath, 
+                                     header = input$header, sep = input$sep, 
+                                     nrows = 5)
   })
   
 
@@ -157,8 +164,11 @@ shinyServer(function(input, output, session) {
     if (is.null(inFile))
       return(NULL)
     
-    datain <<- read.csv(inFile$datapath, header = input$header,
-                        sep = input$sep, quote = input$quote, nrows=5)
+    # datain <<- read.csv(inFile$datapath, header = input$header,
+    #                     sep = input$sep, quote = input$quote, nrows=5)
+    datain <<- readFileReserveHeader(file = inFile$datapath, 
+                                     header = input$header, sep = input$sep, 
+                                     nrows = 5)
   })
   
   output$pricol <- renderUI({   
@@ -167,8 +177,11 @@ shinyServer(function(input, output, session) {
     if (is.null(inFile))
       return('')
     
-    datain <<- read.csv(inFile$datapath, header = input$header,
-                        sep = input$sep, quote = input$quote, nrows = 2)
+    # datain <<- read.csv(inFile$datapath, header = input$header,
+    #                     sep = input$sep, quote = input$quote, nrows = 2)
+    datain <<- readFileReserveHeader(file = inFile$datapath, 
+                                     header = input$header, sep = input$sep, 
+                                     nrows = 2)
     
     radioButtons("primarycol", "Select the primary column", choices = as.list(colnames(datain)))
   })
@@ -179,8 +192,11 @@ shinyServer(function(input, output, session) {
     if (is.null(inFile))
       return('')
     
-    datain <<- read.csv(inFile$datapath, header = input$header,
-                        sep = input$sep, quote = input$quote, nrows = 2)
+    # datain <<- read.csv(inFile$datapath, header = input$header,
+    #                     sep = input$sep, quote = input$quote, nrows = 2)
+    datain <<- readFileReserveHeader(file = inFile$datapath, 
+                                     header = input$header, sep = input$sep, 
+                                     nrows = 2)
     
     #radioButtons("pcol", "Select the column to De-identify", choices = as.list(colnames(datain)))
     checkboxGroupInput("pcol", "Columns to De-Identify", choices = as.list(colnames(datain)))
@@ -192,8 +208,11 @@ shinyServer(function(input, output, session) {
     if (is.null(inFile))
       return('')
     
-    datain <<- read.csv(inFile$datapath, header = input$header,
-                        sep = input$sep, quote = input$quote, nrows = 2)
+    # datain <<- read.csv(inFile$datapath, header = input$header,
+    #                     sep = input$sep, quote = input$quote, nrows = 2)
+    datain <<- readFileReserveHeader(file = inFile$datapath, 
+                                     header = input$header, sep = input$sep, 
+                                     nrows = 2)
     
     checkboxGroupInput("rcol", "Columns to Remove", choices = as.list(colnames(datain))) 
   })
@@ -214,7 +233,10 @@ shinyServer(function(input, output, session) {
       if (is.null(inFile))
       return(NULL)
       
-      ou <- read.csv(inFile$datapath, header = input$header, sep = input$sep, quote = input$quote)
+      # ou <- read.csv(inFile$datapath, header = input$header, sep = input$sep, quote = input$quote)
+      ou <- readFileReserveHeader(file = inFile$datapath, 
+                                  header = input$header, sep = input$sep 
+                                  )
 
       temp <- mask(ou,as.list(input$rcol),as.list(input$pcol),input$mapping,as.character(input$passwd),input$colnric,input$nricselect,input$mode)
       dl <- temp[[1]]
@@ -224,13 +246,17 @@ shinyServer(function(input, output, session) {
   
       fs <- c("mask.csv")
       fs_no_mask <- c("mask.csv")
-      write.csv(dl, file = "mask.csv",row.names = FALSE)
+      # write.csv(dl, file = "mask.csv",row.names = FALSE)
+      writeFileReserveHeader(data = dl, file = "mask.csv")
         
       cnt <- 1
       while(cnt <= no_files)
       {
         fs <- append(fs,paste0("mapping-",input$pcol[cnt],".csv"))
-        write.csv(mp[cnt], file = fs[cnt+1], na = "",row.names = FALSE)
+        # write.csv(mp[cnt], file = fs[cnt+1], na = "",row.names = FALSE)
+        tmp <- as.data.frame(mp[[cnt]])
+        names(tmp) <- names(mp[[cnt]])
+        writeFileReserveHeader(data = tmp, file = fs[cnt + 1])
         cnt <- cnt+1
       }
         
@@ -323,8 +349,11 @@ shinyServer(function(input, output, session) {
     if (is.null(inFile))
       return('')
     
-    datain <<- read.csv(inFile$datapath, header = input$header,
-                        sep = input$sep, quote = input$quote, nrows = 2)
+    # datain <<- read.csv(inFile$datapath, header = input$header,
+    #                     sep = input$sep, quote = input$quote, nrows = 2)
+    datain <<- readFileReserveHeader(file = inFile$datapath, 
+                                     header = input$header, sep = input$sep, 
+                                     nrows = 2)
     
     checkboxGroupInput("pcolchk", "Columns to De-Identify", choices = as.list(colnames(datain)))
   })
@@ -335,8 +364,11 @@ shinyServer(function(input, output, session) {
     if (is.null(inFile))
       return('')
     
-    datain <<- read.csv(inFile$datapath, header = input$header,
-                        sep = input$sep, quote = input$quote, nrows = 2)
+    # datain <<- read.csv(inFile$datapath, header = input$header,
+    #                     sep = input$sep, quote = input$quote, nrows = 2)
+    datain <<- readFileReserveHeader(file = inFile$datapath, 
+                                     header = input$header, sep = input$sep, 
+                                     nrows = 2)
     
     checkboxGroupInput("rcolchk", "Columns to Remove", choices = as.list(colnames(datain))) 
   })

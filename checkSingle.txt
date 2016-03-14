@@ -1,95 +1,182 @@
+ 
+```{r, echo=FALSE}   
+require(knitr, warn.conflicts = FALSE, quietly = TRUE)   
+require(pander,warn.conflicts = FALSE, quietly = TRUE)   
+opts_chunk$set(echo = FALSE, comment = "", results = "asis")   
+panderOptions("table.caption.prefix", "") 
+source("functions.R") 
+# Functions to combine tables with different numbers of rows and columns 
+reserveDimNames <- function(tb) { 
+  colName <- colnames(tb) 
+  rowName <- rownames(tb) 
+  tb <- as.matrix(tb) 
+  if (!is.null(colName)) { 
+    tb <- rbind(colName, tb) 
+    if (!is.null(rowName)) { 
+      tb <- cbind(c("", rowName), tb) 
+    } 
+  } else { 
+    if (!is.null(rowName)) { 
+      tb <- cbind(rowName, tb) 
+    } 
+  } 
+  dimnames(tb) <- list(NULL, NULL) 
+  tb 
+} 
+#' Combine two tables (by row or column) regardless of their dimensions 
+#' @param tb1 First table to bind 
+#' @param tb2 Second table to bind 
+#' @param howToBind Specify the way to combine the two tables. Specify  
+#'   \code{cbind} for combining by columns, and \code{rbind} for combining by 
+#'   rows. Do not support other values. 
+#' @param nSep Number of rows/columns to insert between the two tables when  
+#'   combining. Defaults to be \code{0}. 
+#' @return A character table. Column names and row names are reserved after  
+#'   combination 
+#' @export 
+combineTables <- function(tb1, tb2, howToBind, nSep = 0) { 
+  if (is.null(howToBind) | !is.element(howToBind, c("cbind", "rbind"))) { 
+    stop(simpleError("Please specify either 'cbind' or 'rbind'.")) 
+  } 
+  tb1 <- reserveDimNames(tb1) 
+  tb2 <- reserveDimNames(tb2) 
+  r1 <- nrow(tb1) 
+  r2 <- nrow(tb2) 
+  c1 <- ncol(tb1) 
+  c2 <- ncol(tb2) 
+  if (howToBind == "cbind") { 
+    if (r1 == r2) { 
+      return(cbind(tb1, matrix("", nrow = r1, ncol = nSep), tb2)) 
+    } else if (r1 > r2) { 
+      tb2plus <- rbind(tb2, matrix("", nrow = r1 - r2, ncol = c2)) 
+      return(cbind(tb1, matrix("", nrow = r1, ncol = nSep), tb2plus)) 
+    } else { 
+      tb1plus <- rbind(tb1, matrix("", nrow = r2 - r1, ncol = c1)) 
+      return(cbind(tb1plus, matrix("", nrow = r2, ncol = nSep), tb2)) 
+    } 
+  } 
+  if (howToBind == "rbind") { 
+    if (c1 == c2) { 
+      return(rbind(tb1, matrix("", nrow = nSep, ncol = c1), tb2)) 
+    } else if (c1 > c2) { 
+      tb2plus <- cbind(tb2, matrix("", nrow = r2, ncol = c1 - c2)) 
+      return(rbind(tb1, matrix("", nrow = nSep, ncol = c1), tb2plus)) 
+    } else { 
+      tb1plus <- cbind(tb1, matrix("", nrow = r1, ncol = c2 - c1)) 
+      return(rbind(tb1plus, matrix("", nrow = nSep, ncol = c2), tb2)) 
+    } 
+  } 
+} 
 
-```{r, echo=FALSE}  
-require(knitr, warn.conflicts = FALSE, quietly = TRUE)  
-require(pander,warn.conflicts = FALSE, quietly = TRUE)  
-opts_chunk$set(echo = FALSE, comment = "")  
-panderOptions("table.caption.prefix", "")
-```  
-### De-identification check of dataset   
+
+```   
+ 
+
+### De-identification check of dataset    
+   
+De-identified data is contained file `mask.csv`    
+
+```{r}
+# Unzip the names of de-identified columns and removed columns  
+cnames <- unlist(strsplit(params$cnames, split = ";"))   
+rmnames <- unlist(strsplit(params$rmnames, split = ";"))   
+# Name of de-identified columns   
+maskPar <- list(original = cnames)   
+maskPar$masked <- paste0(maskPar$original, "_masked")   
+# Name of output files after de-identified   
+externalFile <- as.list(paste0("mapping-", maskPar$original, ".csv"))   
+names(externalFile) <- maskPar$original   
   
-```{r}  
-# Unzip the names of de-identified columns and removed columns 
-cnames <- unlist(strsplit(params$cnames, split = ";"))  
-rmnames <- unlist(strsplit(params$rmnames, split = ";"))  
-# Name of de-identified columns  
-maskPar <- list(original = cnames)  
-maskPar$masked <- paste0(maskPar$original, "_masked")  
-# Name of output files after de-identified  
-externalFile <- as.list(paste0("mapping-", maskPar$original, ".csv"))  
-names(externalFile) <- maskPar$original  
-```  
-De-identified data is contained file `mask.csv`   
-  
-Mapping table for columns:  
-```{r, results="asis"}  
-tb <- data.frame(col = as.character(maskPar$original),   
-                 map = unlist(externalFile))  
-rownames(tb) <- 1:nrow(tb)  
-colnames(tb) <- c("Masked column", "Mapping table")  
-pandoc.table(tb, style = "rmarkdown", caption = "")  
-```  
-```{r}  
-# Original data (remove columns that were chosen to be removed by the user) 
-dataOri <- read.csv(params$originalFile, header = TRUE,   
-                    colClasses = "character")  
-if (length(rmnames) > 0) { 
-  dataOri <- dataOri[, setdiff(names(dataOri), rmnames)] 
-  cat("Columns", toString(rmnames),  
-      "were chosen to be removed from the de-identified dataset and hence are not included here.\n")   
-} 
-# de-identified data  
-dataMask <- read.csv(paste(params$maskedDir, "mask.csv", sep = "/"),   
-                     header = TRUE, colClasses = "character")  
-# Mapping table  
-mapList <- lapply(externalFile,  
-                  function(f) { 
-                    read.csv(paste(params$mappingDir, f, sep = "/"),  
-                             header = TRUE, colClasses = "character") 
-                  }) 
-names(mapList) <- cnames 
-```  
-Comparing the original and de-identified dataset:
-```{r, results="asis"}  
-tb <- data.frame(nrow = c(nrow(dataOri), nrow(dataMask)),   
-                 ncol = c(ncol(dataOri), ncol(dataMask)),   
-                 cnames = c(toString(names(dataOri)),   
-                            toString(names(dataMask))))  
-rownames(tb) <- c("Original dataset", "Masked dataset")  
-colnames(tb) <- c("No. rows", "No. columns", "Columns")  
-pandoc.table(tb, style = "rmarkdown", caption = "")  
-```  
-```{r}  
-# Recover the original dataset from the de-identified dataset  
-for (cname in cnames) { 
-  mp <- mapList[[cname]] 
-  vmask <- dataMask[, paste0(cname, "_masked")]
-  vori <- dataOri[, cname]
-  if ((nrow(mp) != length(unique(dataOri))) | 
-      (length(intersect(vmask, vori)) > 0)) {
-    pander(paste("Not all entries in column", cname, "are masked.  "))
-  }
-  dataMask[, cname] <-  
-    mp[match(vmask, mp$MASK), cname]
-} 
-# Remove the de-identified columns in masked dataset and reorder the columns 
-dataMask <- dataMask[, names(dataOri)] 
-# Sort both the original and recovered data by all of their columns 
-# dataOri <- data.frame(lapply(dataOri, sort)) 
-# dataMask <- data.frame(lapply(dataMask, sort)) 
-```  
-```{r}  
-# Compare rows: each row should match exactly  
-# cols <- setdiff(names(dataOri), cnames) 
-cols <- names(dataOri)
-check <- sapply(cols,   
-                function(col) identical(trim.spaces(dataMask[, col]), 
-                                        trim.spaces(dataOri[, col])))
-if (all(check)) {  
-  pander(  
-"This file has been correctly de-identified and user can recover the original file with mapping tables generated.\n")  
-} else {  
-  colsWrong <- cols[which(!check)]  
-  pander(paste("Some of the entries in columns", toString(colsWrong),   
-               "were changed during de-identification.\n"))  
+tb <- data.frame(col = as.character(maskPar$original),    
+                 map = unlist(externalFile))   
+rownames(tb) <- 1:nrow(tb)   
+colnames(tb) <- c("Masked column", "Mapping table")   
+
+# Original data (remove columns that were chosen to be removed by the user)  
+dataOri <- readFileReserveHeader(file = params$originalFile, header = TRUE,    
+                                 colClasses = "character")   
+if (length(rmnames) > 0) {  
+  dataOri <- dataOri[, setdiff(names(dataOri), rmnames)]  
+  cat("Columns", toString(rmnames),   
+      "were chosen to be removed from the de-identified dataset and hence are not included here.\n")    
 }  
-```  
+# de-identified data   
+dataMask <- readFileReserveHeader(file = paste(params$maskedDir, "mask.csv",  
+                                               sep = "/"),    
+                                  header = TRUE, colClasses = "character")   
+# Mapping table   
+mapList <- lapply(externalFile,   
+                  function(f) {  
+                    readFileReserveHeader(file = paste(params$mappingDir, f,  
+                                                       sep = "/"),   
+                                          header = TRUE,  
+                                          colClasses = "character")  
+                  })  
+names(mapList) <- cnames  
+
+tb1 <- data.frame(nrow = c(nrow(dataOri), nrow(dataMask)),    
+                  ncol = c(ncol(dataOri), ncol(dataMask))) 
+rownames(tb1) <- c("Original dataset", "Masked dataset")   
+colnames(tb1) <- c("No. rows", "No. columns") 
+
+tb2 <- combineTables(tb1 = matrix(names(dataOri), ncol = 1),  
+                     tb2 = matrix(names(dataMask), ncol = 1),  
+                     howToBind = "cbind", nSep = 0) 
+tb2 <- cbind(1:nrow(tb2), tb2) 
+colnames(tb2) <- c("", "Columns in original dataset",  
+                   "Columns in masked dataset")   
+```
+
+Mapping table for columns:   
+
+```{r} 
+pandoc.table(tb, style = "simple", caption = "", justify = "left")   
+```   
+ 
+Comparing the dimension of original and de-identified dataset:
+ 
+```{r}   
+pandoc.table(tb1, style = "simple", caption = "", justify = "left")   
+```   
+ 
+Comparing the column names in original and de-identified dataset:
+
+```{r}   
+pandoc.table(tb2, style = "simple", caption = "", justify = "left")   
+```   
+ 
+
+```{r}   
+# Recover the original dataset from the de-identified dataset   
+for (cname in cnames) {  
+  mp <- mapList[[cname]]  
+  vmask <- dataMask[, paste0(cname, "_masked")] 
+  vori <- dataOri[, cname] 
+  if ((nrow(mp) != length(unique(vori))) |  
+      (length(intersect(vmask, vori)) > 0)) { 
+    pander(paste("Not all entries in column", cname, "are masked.  ")) 
+  } 
+  dataMask[, cname] <-   
+    mp[match(vmask, mp$MASK), cname] 
+}  
+# Remove the de-identified columns in masked dataset and reorder the columns  
+dataMask <- dataMask[, names(dataOri)]  
+# Sort both the original and recovered data by all of their columns  
+# dataOri <- data.frame(lapply(dataOri, sort))  
+# dataMask <- data.frame(lapply(dataMask, sort))  
+
+# Compare rows: each row should match exactly   
+# cols <- setdiff(names(dataOri), cnames)  
+cols <- names(dataOri) 
+check <- sapply(cols,    
+                function(col) identical(trim.spaces(dataMask[, col]),  
+                                        trim.spaces(dataOri[, col]))) 
+if (all(check)) {   
+  pander(   
+"This file has been correctly de-identified and user can recover the original file with mapping tables generated.\n")   
+} else {   
+  colsWrong <- cols[which(!check)]   
+  pander(paste("Some of the entries in columns", toString(colsWrong),    
+               "were changed during de-identification.\n"))   
+}   
+```   

@@ -110,5 +110,8 @@ if(!any(packs%in%"pander")){
   install.packages("pander", repos="http://cran.us.r-project.org")  
 }
 
+if(!any(packs%in%"data.table")){
+  install.packages("data.table", repos="http://cran.us.r-project.org")   
+}
 
 
