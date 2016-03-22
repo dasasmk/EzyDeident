@@ -1,6 +1,9 @@
 library(shiny)
+library(shinythemes)
+
 
 shinyUI(navbarPage("Ezy De-Identifier",
+                   theme=shinytheme("united"),
                    
                    tabPanel("License",
                             tags$div(
