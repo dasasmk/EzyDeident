@@ -115,7 +115,7 @@ if(!any(packs%in%"data.table")){
 }
 
 if(!any(packs%in%"shinythemes")){
-  install.packages("data.table", repos="http://cran.us.r-project.org")   
+  install.packages("shinythemes", repos="http://cran.us.r-project.org")   
 }
 
 
