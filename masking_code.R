@@ -101,6 +101,12 @@ hmac_wrap <- function(data)
   return(hmac(pass1,data,"sha256"))
 }
 
+custommask <- function(data)
+{
+  #Replace the following line for custom mask function
+  return(hmac(pass1,data,"sha1"))
+}
+
 mask <- function(ou,rcol,pcol,mapping,passwd,nricflag,nriccol,mode) {
     
 	if(!file.exists("keyused.txt"))
@@ -139,9 +145,10 @@ mask <- function(ou,rcol,pcol,mapping,passwd,nricflag,nriccol,mode) {
 			#print(passwd)
 			pass1 <<- passwd
 			
-			if(mode == 'E')
+			if(mode == 'C')
 			{
-			  mappingtable$MASK[which(mappingtable$ID==uid)] <- sapply(uid,encrypt_wrap)
+			  #mappingtable$MASK[which(mappingtable$ID==uid)] <- sapply(uid,encrypt_wrap)
+			  mappingtable$MASK[which(mappingtable$ID==uid)] <- sapply(uid,custommask)
 			}
 			else
 			{

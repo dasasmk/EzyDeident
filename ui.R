@@ -60,10 +60,14 @@ shinyUI(navbarPage("Ezy De-Identifier",
                   conditionalPanel("input.step1 == true && input.step2 == false",
                   fluidRow(column(6,htmlOutput("maskcol"),htmlOutput("nricselect"),checkboxInput("colnric", "Perform NRIC check?", value = FALSE)),column(6,htmlOutput("removecol"))),
                   fluidRow(column(6,passwordInput("passwd",label = "Enter password"),passwordInput("passwd1",label = "Confirm password"), checkboxInput("passrandom", "Random Password?", value = FALSE)),column(6,
-                  radioButtons('mode', 'Mode',
-                               c(HMAC='M'),
-                               'M'), 
+                  #radioButtons('mode', 'Mode',
+                  #             c('HMAC (SHA256)'='M'),
+                  #             'M'),
+					radioButtons('mode', 'Mode',
+                               c('HMAC (SHA256)'='M','HMAC (SHA1)/Custom'='C'),
+                               'M'),							   
                   checkboxInput('mapping', 'Produce Mapping File', TRUE),
+				  checkboxInput('zippass', 'Password Protect Output', TRUE),
                   checkboxInput('report', 'Produce Validation Report', TRUE))),
                   textOutput("warnings"),
                   textOutput("warnings2")),
@@ -93,7 +97,7 @@ shinyUI(navbarPage("Ezy De-Identifier",
 )),
 tabPanel("Verify",
         
-         fluidRow(column(12,offset=1,"To verify data previously created without a validation report please select the source text and previous output zip")),
+         fluidRow(column(12,offset=1,"To verify data previously created without a validation report please select the source text and previous output zip. This function supports zip files without passwords only")),
          HTML("<br>"),
          
          fileInput('src', 'Choose Source Text File',accept = c(
@@ -114,7 +118,7 @@ tabPanel("Verify",
 tabPanel("About",
          
          
-         fluidRow(column(12,offset=1,"Ezy De-identifer v1.1 - Copyright 2016")),
+         fluidRow(column(12,offset=1,"Ezy De-identifer v1.2 - Copyright 2016, 2018")),
          fluidRow(column(12,offset=1,"Co-developed by the Centre for Health Services and Policy Research and the Saw Swee Hock School of Public Health")),
          fluidRow(column(12,offset=1,"at the National University of Singapore and National University Health System in Singapore"))
          

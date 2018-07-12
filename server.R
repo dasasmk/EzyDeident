@@ -9,8 +9,8 @@ source('masking_code.R')
 source('functions.R')
 
 # By default, the file size limit is 5MB. It can be changed by
-# setting this option. Here we'll raise limit to 500MB.
-options(shiny.maxRequestSize = 500*1024^2)
+# setting this option. Here we'll raise limit to 1000MB.
+options(shiny.maxRequestSize = 1000*1024^2)
 pathvar <<- getwd();
 tempdirpath <<- NULL;
 
@@ -39,11 +39,13 @@ shinyServer(function(input, output, session) {
     {
       updateCheckboxInput(session, "step2", value = TRUE)
     }
-    
-    
+       
+	    
     if(input$passrandom == TRUE)
     {
       updateCheckboxInput(session, "mapping", value = FALSE)
+	  updateCheckboxInput(session, "zippass", value = FALSE)
+	  
       ranpass <- genrandompass()
       updateTextInput(session, "passwd", value = paste(ranpass))
       updateTextInput(session, "passwd1", value = paste(ranpass)) 
@@ -55,13 +57,7 @@ shinyServer(function(input, output, session) {
         #updateTextInput(session, "passwd", value = paste(""))
       }
     }
-    
-    if(input$passrandom == TRUE)
-    {
-      updateCheckboxInput(session, "mapping", value = FALSE)
-    }
-
-    
+       	   
     if(input$step1b == 1)
     {
       updateCheckboxInput(session, "step1", value = TRUE)
@@ -218,14 +214,17 @@ shinyServer(function(input, output, session) {
   })
   
   output$downloadData <- downloadHandler(
-    filename = 'output.zip',
-    content = function(fname) {
+    #filename = 'output.zip',
+    filename = paste0(tools::file_path_sans_ext(input$file1),'_output.zip'),
+	
+	content = function(fname) {
       setwd(pathvar)
       
       tmpdir <- tempdir()
       setwd(tempdir())
       print(tempdir())
       print(input$mapping)
+	  print(input$zippass)
       print(input$report)
       
       inFile <- input$file1
@@ -283,15 +282,30 @@ shinyServer(function(input, output, session) {
         }
         
         print(input$mapping)
+		print(input$zippass)
         print(input$report)
       
         if(input$mapping == TRUE)
-        {
-          zip(zipfile=fname, files=fs)
+        {		
+			if(input$zippass == TRUE)
+			{		  
+				zip(zipfile=fname, files=fs, flags = paste("--password",as.character(input$passwd)))
+			}
+			else
+			{
+				zip(zipfile=fname, files=fs)
+			}
         }
         else
         {
-          zip(zipfile=fname, files=fs_no_mask)
+          if(input$zippass == TRUE)
+			{		  
+				zip(zipfile=fname, files=fs_no_mask, flags = paste("--password",as.character(input$passwd)))
+			}
+			else
+			{
+				zip(zipfile=fname, files=fs_no_mask)
+			}
         }
         
         if(file.exists(paste0(fname, ".zip"))) {file.rename(paste0(fname, ".zip"), fname)}
